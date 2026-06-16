@@ -1,0 +1,158 @@
+/* ===========================================================
+   Guardianes de la Vía — "Carril Correcto"
+   Estética arcade / pixel. Responsive y accesible.
+   =========================================================== */
+#carril-game {
+  --bg:    #0d1b2a;
+  --stage: #11151f;
+  --ink:   #e6edf3;
+  --muted: #9aa7b6;
+  --pill:  #1b2433;
+  --line:  #2a3550;
+  --amber: #ffb703;
+  --green: #06d6a0;
+  --red:   #ef476f;
+  --teal:  #2ec4b6;
+
+  max-width: 460px;
+  margin: 1.25rem auto;
+  padding: 14px;
+  background: var(--bg);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 2px #0a1420;
+  font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ink);
+  user-select: none;
+}
+
+/* ---------- HUD superior ---------- */
+.cg-hud {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.cg-pill {
+  background: var(--pill); border: 2px solid var(--line);
+  border-radius: 999px; padding: 5px 12px;
+  font-size: 12px; letter-spacing: .04em; white-space: nowrap;
+  font-weight: 700;
+}
+#cg-score { color: var(--amber); }
+
+.cg-sign {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #14110a;
+  border: 2px solid var(--amber);
+  border-radius: 8px; padding: 6px 10px;
+  text-align: center; line-height: 1.1;
+}
+.cg-arrow { font-size: 20px; color: var(--amber); }
+#cg-maneuver {
+  font-size: 13px; font-weight: 700; letter-spacing: .03em;
+  text-transform: uppercase; color: #ffe7a8;
+}
+
+/* ---------- Escenario (canvas + capas) ---------- */
+.cg-stage {
+  position: relative;
+  background: var(--stage);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  aspect-ratio: 180 / 240;
+}
+#carrilCanvas {
+  display: block;
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* barra de aproximación al cruce */
+.cg-approach-track {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; height: 8px;
+  background: rgba(0,0,0,.45);
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+}
+.cg-approach-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--green), var(--amber));
+  transition: width .08s linear;
+}
+
+/* banner de feedback */
+.cg-feedback {
+  position: absolute; left: 10px; right: 10px; top: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; text-align: center;
+  opacity: 0; transform: translateY(-6px);
+  transition: opacity .15s ease, transform .15s ease;
+  pointer-events: none;
+}
+.cg-feedback.show { opacity: 1; transform: translateY(0); }
+.cg-feedback.cg-ok  { background: rgba(6,214,160,.16);  border: 2px solid var(--green); color: #aef2da; }
+.cg-feedback.cg-bad { background: rgba(239,71,111,.16); border: 2px solid var(--red);   color: #ffc4d2; }
+
+/* overlays (intro / resultados) */
+.cg-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 20px;
+  text-align: center;
+  background: rgba(8,14,24,.82);
+  backdrop-filter: blur(2px);
+}
+.cg-overlay.cg-hidden { display: none; }
+.cg-overlay h2 {
+  margin: 0; font-size: 22px; letter-spacing: .04em;
+  color: var(--teal); text-shadow: 2px 2px 0 #06302c;
+}
+.cg-overlay p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 30ch; }
+.cg-overlay .cg-warn { color: #ffc4d2; }
+.cg-overlay .cg-warn strong { color: var(--red); }
+#cg-final { font-size: 34px; font-weight: 800; color: var(--amber); margin: 2px 0; }
+
+/* ---------- Botón principal ---------- */
+.cg-cta {
+  margin-top: 4px;
+  font-family: inherit; font-size: 15px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: #06251f; background: var(--teal);
+  border: none; border-bottom: 4px solid #167a72;
+  padding: 12px 26px; border-radius: 10px; cursor: pointer;
+  transition: transform .06s ease, filter .15s ease;
+}
+.cg-cta:hover { filter: brightness(1.08); }
+.cg-cta:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+/* ---------- Controles de carril ---------- */
+.cg-controls {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  margin-top: 12px;
+}
+.cg-btn {
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--ink); background: var(--pill);
+  border: 2px solid var(--line); border-bottom-width: 4px;
+  padding: 12px 6px; border-radius: 10px; cursor: pointer;
+  transition: transform .06s ease, border-color .12s ease, background .12s ease;
+}
+.cg-btn:hover { background: #222d40; }
+.cg-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+.cg-btn.is-active {
+  border-color: var(--teal); background: #143a37; color: #aef2da;
+}
+
+.cg-hint {
+  margin: 10px 2px 0; text-align: center;
+  font-size: 11px; color: var(--muted); letter-spacing: .02em;
+}
+
+/* ---------- Accesibilidad ---------- */
+.cg-btn:focus-visible, .cg-cta:focus-visible {
+  outline: 3px solid var(--amber); outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cg-feedback, .cg-approach-fill, .cg-cta, .cg-btn { transition: none; }
+}

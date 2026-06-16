@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Carril Correcto{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/juego_carriles.css') }}">
+{% endblock %}
+
+{% block content %}
+<div id="carril-game" data-juego-id="{{ juego_id or 200002 }}">
+  <div class="cg-hud">
+    <div class="cg-pill" id="cg-round">Ronda 1/10</div>
+    <div class="cg-sign">
+      <span class="cg-arrow" id="cg-arrow">&#9650;</span>
+      <span id="cg-maneuver">Prepárate</span>
+    </div>
+    <div class="cg-pill" id="cg-score">0 pts</div>
+  </div>
+
+  <div class="cg-stage">
+    <canvas id="carrilCanvas"></canvas>
+    <div class="cg-feedback" id="cg-feedback"></div>
+    <div class="cg-approach-track"><div class="cg-approach-fill" id="cg-approach"></div></div>
+
+    <div class="cg-overlay" id="cg-overlay-intro">
+      <h2>Carril Correcto</h2>
+      <p class="cg-warn">El coche está girando <strong>desde el carril central</strong>: eso es peligroso e incorrecto.</p>
+      <p>Colócate en el carril correcto según la flecha antes de llegar al cruce.</p>
+      <button class="cg-cta" id="cg-start">Jugar</button>
+    </div>
+
+    <div class="cg-overlay cg-hidden" id="cg-overlay-results">
+      <h2>Resultado</h2>
+      <div id="cg-final">0 / 100</div>
+      <p id="cg-final-msg"></p>
+      <button class="cg-cta" id="cg-again">Jugar de nuevo</button>
+    </div>
+  </div>
+
+  
+  <div class="cg-controls">
+    <button class="cg-btn" id="cg-left">&#9664; Izquierda</button>
+    <button class="cg-btn" id="cg-center">&#9650; Centro</button>
+    <button class="cg-btn" id="cg-right">Derecha &#9654;</button>
+  </div>
+  <p class="cg-hint">Usa &larr; &rarr; (o A/D), o toca los botones.</p>
+</div>
+
+<script src="{{ url_for('static', filename='js/juego_carriles.js') }}"></script>
+{% endblock %}

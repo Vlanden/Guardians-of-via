@@ -68,7 +68,15 @@ def ver_juego(juego_id=None):
         tipo = 'extra'
     if not juego:
         abort(404, description="Juego no encontrado")
-    return render_template('game/game.html',
+
+    # Cada juego extra tiene su propia plantilla; el resto usa game.html
+    plantillas_extra = {
+        200002: 'game/juego_carriles.html',
+        # 200001: 'game/juegoextra.html',  # si algún día registras "Completa la Frase"
+    }
+    plantilla = plantillas_extra.get(juego_id, 'game/game.html') if tipo == 'extra' else 'game/game.html'
+
+    return render_template(plantilla,
                            user=current_user,
                            juego=juego,
                            juego_id=juego_id,
@@ -93,6 +101,10 @@ def obtener_tipo_juego(juego_id):
 def jugar_juegoextra():
     return render_template('game/juegoextra.html')
 
+@main_bp.route('/jugar-carril-correcto')
+@login_required
+def jugar_carril_correcto():
+    return render_template('game/juego_carriles.html')
 
 
 @main_bp.route('/perfil')
