@@ -179,30 +179,43 @@ def obtener_sim(juego_id):
 @login_required
 @limiter.limit("50 per minute")
 def guardar_puntuacion():
+    # Validar CSRF
     try:
-        # obtenemos y validamos el token CSRF lanzando si no es válido
-        csrf_token = request.headers.get('X-CSRFToken', '')
-        try:
-            validate_csrf(csrf_token)
-        except ValidationError as ve:
-            current_app.logger.warning(f"CSRF inválido: {ve}")
-            return jsonify({"error": "Token CSRF inválido"}), 403
-        
-        
-        data = request.get_json()
-        juego_id = str(data.get('juego_id'))  # Convertir a string
-        puntuacion = int(data.get('puntuacion'))
-        fecha_inicio = datetime.strptime(data.get('fecha_inicio'), '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
-        fecha_fin = datetime.strptime(data.get('fecha_fin'), '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+        validate_csrf(request.headers.get('X-CSRFToken', ''))
+    except ValidationError as ve:
+        current_app.logger.warning(f"CSRF inválido: {ve}")
+        return jsonify({"error": "Token CSRF inválido"}), 403
 
-        if int(data.get('juego_id')) < 100000:
-            if not juegos_quiz.query.get(juego_id):
-                return {"error": "Juego no existe"}, 404
-    
-        if not (0 <= puntuacion <= 100):
-                    return {'error': 'Puntuación inválida'}, 400
-                
-                # Guardar intento y actualizar perfil
+    try:
+        data = request.get_json()
+        juego_id = str(data.get('juego_id'))
+        juego_id_int = int(data.get('juego_id'))
+        puntuacion = int(data.get('puntuacion'))
+        fecha_inicio = datetime.strptime(
+            data.get('fecha_inicio'), '%Y-%m-%d %H:%M:%S'
+        ).replace(tzinfo=timezone.utc)
+        fecha_fin = datetime.strptime(
+            data.get('fecha_fin'), '%Y-%m-%d %H:%M:%S'
+        ).replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": "Datos inválidos", "detalle": str(e)}), 400
+
+    # Validar puntuación
+    if not (0 <= puntuacion <= 100):
+        return jsonify({"error": "Puntuación inválida"}), 400
+
+    # Validar existencia del juego según su rango de ID
+    if juego_id_int < 100000:
+        existe = juegos_quiz.query.get(juego_id_int)
+    elif juego_id_int < 200000:
+        existe = juegos_sim.query.get(juego_id_int)
+    else:
+        existe = juegos_extra.query.get(juego_id_int)
+    if not existe:
+        return jsonify({"error": "Juego no existe"}), 404
+
+    try:
+        # Guardar el intento
         nuevo_intento = intentos(
             username=current_user.username,
             juego_id=juego_id,
@@ -211,54 +224,39 @@ def guardar_puntuacion():
             fecha_fin=fecha_fin
         )
         db.session.add(nuevo_intento)
-        db.session.commit()
 
-
-        # Obtener o crear perfil
+        # Obtener o crear el perfil
         perfil = Perfil.query.filter_by(username=current_user.username).first()
         if not perfil:
-            perfil = Perfil(username=current_user.username, juegos_jugados=None)  # Inicializar como None
+            perfil = Perfil(username=current_user.username, juegos_jugados='')
             db.session.add(perfil)
-            db.session.flush()
 
-        # Actualizar juegos_jugados (IDs separados por comas)
-        if perfil.juegos_jugados:
-            juegos_existentes = perfil.juegos_jugados.split(',')
-        else:
-            perfil.juegos_jugados = juego_id  # Primer juego
-            
-            
-        
-
-        # Filtrar elementos vacíos y espacios
-        juegos_actuales = (
-            [x.strip() for x in perfil.juegos_jugados.split(',') if x.strip()] 
-            if perfil.juegos_jugados 
-            else []
-        )
-        
+        # Actualizar la lista de últimos juegos (máx. 5, sin duplicar el primero)
+        juegos_actuales = [
+            x.strip() for x in (perfil.juegos_jugados or '').split(',') if x.strip()
+        ]
         juegos_actuales.append(juego_id)
         if len(juegos_actuales) > 5:
-                juegos_actuales.pop(0)
-                
+            juegos_actuales.pop(0)
+
         perfil.juegos_jugados = ','.join(juegos_actuales)
-        
         perfil.ultima_conexion = datetime.now(timezone.utc)
-        
-        current_app.logger.info(f"Perfil actualizado: {perfil.username} | Juegos: {perfil.juegos_jugados} | Ultima Conexion: {perfil.ultima_conexion}")
-        
+
         db.session.commit()
 
-        return {
-                'success': True,
-                'intento_id': nuevo_intento.id,
-                'juegos_jugados': perfil.juegos_jugados,
-                'fecha_inicio': nuevo_intento.fecha_inicio,
-                'fecha_fin': nuevo_intento.fecha_fin
-            }, 200  # ← Código HTTP explícito
-        
-    except ValueError as e:
-        return jsonify({"error": "Datos inválidos", "detalle": str(e)}), 400
+        current_app.logger.info(
+            f"Perfil actualizado: {perfil.username} | "
+            f"Juegos: {perfil.juegos_jugados}"
+        )
+
+        return jsonify({
+            'success': True,
+            'intento_id': nuevo_intento.id,
+            'juegos_jugados': perfil.juegos_jugados,
+            'fecha_inicio': nuevo_intento.fecha_inicio.isoformat(),
+            'fecha_fin': nuevo_intento.fecha_fin.isoformat()
+        }), 200
+
     except SQLAlchemyError as e:
         db.session.rollback()
         current_app.logger.error(f"Error de base de datos: {str(e)}")
